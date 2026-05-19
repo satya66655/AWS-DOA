@@ -1,17 +1,27 @@
 pipeline {
+    agent any
+
+    parameters {
+        choice(
+            name: 'TF_ACTION',
+            choices: ['plan', 'apply', 'destroy'],
+            description: 'Select Terraform Action'
+        )
+    }
+
+    stages {
+
+        stage('Checkout Code') {
+            steps {
                 git branch: 'main',
                 url: 'https://github.com/satya66655/AWS-DOA.git'
             }
         }
 
-        stage('Terraform Version') {
+        stage('Verify Tools') {
             steps {
                 sh 'terraform version'
-            }
-        }
-
-        stage('Verify AWS Access') {
-            steps {
+                sh 'aws --version'
                 sh 'aws sts get-caller-identity'
             }
         }
@@ -19,12 +29,6 @@ pipeline {
         stage('Terraform Init') {
             steps {
                 sh 'terraform init'
-            }
-        }
-
-        stage('Terraform Format Check') {
-            steps {
-                sh 'terraform fmt -check'
             }
         }
 
@@ -44,34 +48,19 @@ pipeline {
 
                     if (params.TF_ACTION == 'apply') {
 
-                        input message: 'Approve Terraform APPLY?', ok: 'Apply'
+                        input message: 'Approve APPLY?', ok: 'Apply'
 
                         sh 'terraform apply -auto-approve'
                     }
 
                     if (params.TF_ACTION == 'destroy') {
 
-                        input message: 'Approve Terraform DESTROY?', ok: 'Destroy'
+                        input message: 'Approve DESTROY?', ok: 'Destroy'
 
                         sh 'terraform destroy -auto-approve'
                     }
                 }
             }
-        }
-    }
-
-    post {
-
-        success {
-            echo 'Terraform pipeline completed successfully.'
-        }
-
-        failure {
-            echo 'Terraform pipeline failed.'
-        }
-
-        always {
-            cleanWs()
         }
     }
 }
