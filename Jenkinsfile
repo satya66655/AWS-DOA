@@ -10,6 +10,12 @@ pipeline {
             }
         }
 
+        stage('Verify AWS Access') {
+            steps {
+                sh 'aws sts get-caller-identity'
+            }
+        }
+
         stage('Terraform Init') {
             steps {
                 sh 'terraform init'
