@@ -1,6 +1,10 @@
 pipeline {
     agent any
 
+    environment {
+        PATH = "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+    }
+
     parameters {
         choice(
             name: 'TF_ACTION',
@@ -61,6 +65,17 @@ pipeline {
                     }
                 }
             }
+        }
+    }
+
+    post {
+
+        success {
+            echo 'Terraform pipeline completed successfully.'
+        }
+
+        failure {
+            echo 'Terraform pipeline failed.'
         }
     }
 }
