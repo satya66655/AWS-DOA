@@ -23,9 +23,9 @@ output "ecs_service_name" {
   value       = aws_ecs_service.main.name
 }
 
-output "ecs_service_arn" {
+output "ecs_service_id" {
   description = "ECS service ARN"
-  value       = aws_ecs_service.main.arn
+  value       = aws_ecs_service.main.id
 }
 
 output "alb_arn" {
