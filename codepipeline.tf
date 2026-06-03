@@ -334,10 +334,10 @@ resource "aws_iam_role_policy" "eventbridge_policy" {
 # ════════════════════════════════════════════════════════════════════════════
 
 resource "aws_cloudwatch_event_rule" "ecr_push" {
-  count           = var.enable_ecr_auto_trigger ? 1 : 0
-  name            = "${var.project_name}-ecr-image-push"
-  description     = "Trigger CodePipeline when new image is pushed to ECR"
-  state           = "ENABLED"
+  count       = var.enable_ecr_auto_trigger ? 1 : 0
+  name        = "${var.project_name}-ecr-image-push"
+  description = "Trigger CodePipeline when new image is pushed to ECR"
+  state       = "ENABLED"
 
   event_pattern = jsonencode({
     source      = ["aws.ecr"]
@@ -354,11 +354,11 @@ resource "aws_cloudwatch_event_rule" "ecr_push" {
 }
 
 resource "aws_cloudwatch_event_target" "codepipeline" {
-  count      = var.enable_ecr_auto_trigger ? 1 : 0
-  rule       = aws_cloudwatch_event_rule.ecr_push[0].name
-  target_id  = "CodePipeline"
-  arn        = aws_codepipeline.main.arn
-  role_arn   = aws_iam_role.eventbridge_role[0].arn
+  count     = var.enable_ecr_auto_trigger ? 1 : 0
+  rule      = aws_cloudwatch_event_rule.ecr_push[0].name
+  target_id = "CodePipeline"
+  arn       = aws_codepipeline.main.arn
+  role_arn  = aws_iam_role.eventbridge_role[0].arn
 
   depends_on = [aws_iam_role_policy.eventbridge_policy]
 }
@@ -390,9 +390,9 @@ resource "aws_codepipeline" "main" {
       output_artifacts = ["SourceOutput"]
 
       configuration = {
-        Owner  = var.github_owner
-        Repo   = var.github_repo
-        Branch = var.github_branch
+        Owner      = var.github_owner
+        Repo       = var.github_repo
+        Branch     = var.github_branch
         OAuthToken = var.github_token
       }
     }
@@ -403,12 +403,12 @@ resource "aws_codepipeline" "main" {
     name = "UpdateTaskDefinition"
 
     action {
-      name            = "UpdateECSTaskDef"
-      category        = "Build"
-      owner           = "AWS"
-      provider        = "CodeBuild"
-      version         = "1"
-      input_artifacts = ["SourceOutput"]
+      name             = "UpdateECSTaskDef"
+      category         = "Build"
+      owner            = "AWS"
+      provider         = "CodeBuild"
+      version          = "1"
+      input_artifacts  = ["SourceOutput"]
       output_artifacts = ["BuildOutput"]
 
       configuration = {
