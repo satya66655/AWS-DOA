@@ -3,7 +3,7 @@ agent any
 
 ```
 environment {
-    TF_VAR_github_token = credentials('github-token')
+    TF_VAR_github_token = credentials('GithubToken')
     PATH = "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
 }
 
