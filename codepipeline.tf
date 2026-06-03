@@ -1,7 +1,7 @@
 # ════════════════════════════════════════════════════════════════════════════
-# File: codepipeline.tf - CORRECT VERSION
-# Purpose: Create CodePipeline for automated ECS deployment
-# Integration: Add to your existing AWS-DOA Terraform directory
+# File: codepipeline.tf - FINAL CORRECT VERSION
+# Purpose: CodePipeline for automated ECS deployment
+# FIX: Environment variables are set in buildspec, NOT as Terraform arguments
 # ════════════════════════════════════════════════════════════════════════════
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -211,45 +211,20 @@ resource "aws_codebuild_project" "update_task_definition" {
     image                       = "aws/codebuild/standard:7.0"
     type                        = "LINUX_CONTAINER"
     image_pull_credentials_type = "CODEBUILD"
-    
-    environment_variables = [
-      {
-        name  = "AWS_ACCOUNT_ID"
-        value = var.aws_account_id
-        type  = "PLAINTEXT"
-      },
-      {
-        name  = "AWS_DEFAULT_REGION"
-        value = var.aws_region
-        type  = "PLAINTEXT"
-      },
-      {
-        name  = "ECR_REPOSITORY_NAME"
-        value = var.ecr_repository_name
-        type  = "PLAINTEXT"
-      },
-      {
-        name  = "TASK_DEFINITION_FAMILY"
-        value = var.project_name
-        type  = "PLAINTEXT"
-      },
-      {
-        name  = "ECS_CLUSTER_NAME"
-        value = aws_ecs_cluster.main.name
-        type  = "PLAINTEXT"
-      },
-      {
-        name  = "ECS_SERVICE_NAME"
-        value = aws_ecs_service.main.name
-        type  = "PLAINTEXT"
-      }
-    ]
   }
 
   source {
     type      = "CODEPIPELINE"
     buildspec = <<-EOT
       version: 0.2
+      env:
+        variables:
+          AWS_ACCOUNT_ID: "${var.aws_account_id}"
+          AWS_DEFAULT_REGION: "${var.aws_region}"
+          ECR_REPOSITORY_NAME: "${var.ecr_repository_name}"
+          TASK_DEFINITION_FAMILY: "${var.project_name}"
+          ECS_CLUSTER_NAME: "${aws_ecs_cluster.main.name}"
+          ECS_SERVICE_NAME: "${aws_ecs_service.main.name}"
       phases:
         install:
           runtime-versions:
@@ -260,36 +235,36 @@ resource "aws_codebuild_project" "update_task_definition" {
           commands:
             - |
               echo "Getting the latest image URI from ECR..."
-              IMAGE_URI=$(aws ecr describe-images \
-                --repository-name $ECR_REPOSITORY_NAME \
-                --region $AWS_DEFAULT_REGION \
+              IMAGE_URI=$$(aws ecr describe-images \
+                --repository-name $$ECR_REPOSITORY_NAME \
+                --region $$AWS_DEFAULT_REGION \
                 --query 'imageDetails[0].imageUri' \
                 --output text)
-              echo "Image URI: $IMAGE_URI"
-              echo "IMAGE_URI=$IMAGE_URI" >> /tmp/image.env
+              echo "Image URI: $$IMAGE_URI"
+              echo "IMAGE_URI=$$IMAGE_URI" >> /tmp/image.env
         build:
           commands:
             - |
               source /tmp/image.env
-              echo "Registering new task definition with image: $IMAGE_URI"
+              echo "Registering new task definition with image: $$IMAGE_URI"
               
               # Get current task definition
-              TASK_DEF=$(aws ecs describe-task-definition \
-                --task-definition $TASK_DEFINITION_FAMILY \
-                --region $AWS_DEFAULT_REGION \
+              TASK_DEF=$$(aws ecs describe-task-definition \
+                --task-definition $$TASK_DEFINITION_FAMILY \
+                --region $$AWS_DEFAULT_REGION \
                 --query 'taskDefinition' \
                 --output json)
               
               # Update image in container definition
-              NEW_TASK_DEF=$(echo "$TASK_DEF" | jq \
-                --arg IMAGE "$IMAGE_URI" \
-                '.containerDefinitions[0].image = $IMAGE | 
+              NEW_TASK_DEF=$$(echo "$$TASK_DEF" | jq \
+                --arg IMAGE "$$IMAGE_URI" \
+                '.containerDefinitions[0].image = $$IMAGE | 
                  del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)')
               
               # Register new task definition
               aws ecs register-task-definition \
-                --cli-input-json "$(echo "$NEW_TASK_DEF")" \
-                --region $AWS_DEFAULT_REGION
+                --cli-input-json "$$(echo "$$NEW_TASK_DEF")" \
+                --region $$AWS_DEFAULT_REGION
       artifacts:
         files:
           - /tmp/image.env
@@ -467,4 +442,3 @@ resource "aws_codepipeline" "main" {
     Environment = var.environment
   }
 }
-
