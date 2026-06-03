@@ -1,6 +1,6 @@
 pipeline {
     agent any
-      environment {
+  environment {
     TF_VAR_github_token = credentials('github-token')
     }
   
