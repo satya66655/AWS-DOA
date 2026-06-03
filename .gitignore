@@ -8,4 +8,4 @@ CODEPIPELINE-INTEGRATION-GUIDE.md
 codepipeline-outputs-additions.tf
 codepipeline-tfvars-additions.txt
 codepipeline-variables-additions.tf
-codepipeline.tf
+App_files.zip
