@@ -408,12 +408,12 @@ resource "aws_codepipeline" "main" {
     name = "UpdateTaskDefinition"
 
     action {
-      name            = "UpdateECSTaskDef"
-      category        = "Build"
-      owner           = "AWS"
-      provider        = "CodeBuild"
-      version         = "1"
-      input_artifacts = ["SourceOutput"]
+      name             = "UpdateECSTaskDef"
+      category         = "Build"
+      owner            = "AWS"
+      provider         = "CodeBuild"
+      version          = "1"
+      input_artifacts  = ["SourceOutput"]
       output_artifacts = ["BuildOutput"]
 
       configuration = {

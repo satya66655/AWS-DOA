@@ -2,7 +2,7 @@
 
 // ════════════════════════════════════════════════════════════════════════════
 // Jenkinsfile for AWS DevOps Agent Demo - CodePipeline Terraform Deployment
-// GitHub token is securely managed via Jenkins credentials
+// Automatically captures presentation date/time for resource tagging
 // ════════════════════════════════════════════════════════════════════════════
 
 pipeline {
@@ -34,8 +34,8 @@ pipeline {
     )
     string(
       name: 'DEMO_DATE',
-      defaultValue: '03-06-2026',
-      description: 'Demo date (DD-MM-YYYY)'
+      defaultValue: '',
+      description: 'Demo date (auto-captured on pipeline run, format: DD-MM-YYYY). Leave empty to auto-capture current date.'
     )
   }
 
@@ -43,6 +43,34 @@ pipeline {
   // Pipeline Stages
   // ════════════════════════════════════════════════════════════════════════
   stages {
+
+    // ────────────────────────────────────────────────────────────────────
+    // Stage 0: Capture Demo Date/Time
+    // ────────────────────────────────────────────────────────────────────
+    stage('Capture Demo Date') {
+      steps {
+        script {
+          if (params.DEMO_DATE == '' || params.DEMO_DATE == null) {
+            // Auto-capture current date/time
+            def date = new Date()
+            env.DEMO_DATE = date.format('dd-MM-yyyy HH:mm:ss')
+            echo "📅 Demo Date Auto-Captured: ${env.DEMO_DATE}"
+          } else {
+            env.DEMO_DATE = params.DEMO_DATE
+            echo "📅 Demo Date (User Provided): ${env.DEMO_DATE}"
+          }
+          
+          // Also capture just the date for tagging (DD-MM-YYYY format)
+          def date = new Date()
+          env.DEMO_DATE_ONLY = date.format('dd-MM-yyyy')
+          echo "📅 Date for Tags: ${env.DEMO_DATE_ONLY}"
+          
+          // Capture timestamp for detailed tracking
+          env.DEMO_TIMESTAMP = date.format('dd-MM-yyyy HH:mm:ss z')
+          echo "⏰ Full Timestamp: ${env.DEMO_TIMESTAMP}"
+        }
+      }
+    }
 
     // ────────────────────────────────────────────────────────────────────
     // Stage 1: Checkout Code from Git
@@ -129,7 +157,7 @@ pipeline {
               echo "📋 Planning Terraform changes..."
               terraform plan \
                 -var="aws_account_id=${params.AWS_ACCOUNT_ID}" \
-                -var="demo_date=${params.DEMO_DATE}" \
+                -var="demo_date=${env.DEMO_DATE_ONLY}" \
                 -out=tfplan
               echo "✓ Plan complete - review above"
             """
@@ -139,7 +167,7 @@ pipeline {
               echo "⚙️  Applying Terraform changes..."
               terraform apply \
                 -var="aws_account_id=${params.AWS_ACCOUNT_ID}" \
-                -var="demo_date=${params.DEMO_DATE}" \
+                -var="demo_date=${env.DEMO_DATE_ONLY}" \
                 -auto-approve
               echo "✓ Infrastructure deployed successfully!"
             """
@@ -150,7 +178,7 @@ pipeline {
               echo "🗑️  Destroying infrastructure..."
               terraform destroy \
                 -var="aws_account_id=${params.AWS_ACCOUNT_ID}" \
-                -var="demo_date=${params.DEMO_DATE}" \
+                -var="demo_date=${env.DEMO_DATE_ONLY}" \
                 -auto-approve
               echo "✓ Infrastructure destroyed"
             """
@@ -167,6 +195,16 @@ pipeline {
         script {
           echo "📊 Terraform Outputs:"
           sh 'terraform output -no-color 2>/dev/null || echo "No outputs available yet"'
+          
+          echo ""
+          echo "════════════════════════════════════════════════════════════════"
+          echo "📋 Demo Information:"
+          echo "════════════════════════════════════════════════════════════════"
+          echo "Demo Date (for tags):  ${env.DEMO_DATE_ONLY}"
+          echo "Full Timestamp:        ${env.DEMO_TIMESTAMP}"
+          echo "Pipeline Action:       ${params.ACTION}"
+          echo "AWS Account ID:        ${params.AWS_ACCOUNT_ID}"
+          echo "════════════════════════════════════════════════════════════════"
         }
       }
     }
@@ -179,6 +217,7 @@ pipeline {
   post {
     success {
       echo "✅ Pipeline completed successfully!"
+      echo "Resources tagged with DemoDate: ${env.DEMO_DATE_ONLY}"
     }
     failure {
       echo "❌ Pipeline failed. Check logs above for details."
