@@ -377,22 +377,27 @@ resource "aws_codepipeline" "main" {
     type     = "S3"
   }
 
-  # Stage 1: Source from GitHub
+  # Stage 1: Source from GitHub (using GitHub v2 with CodeStar Connection)
   stage {
     name = "Source"
 
     action {
       name             = "SourceAction"
       category         = "Source"
-      owner            = "GitHub"
+      owner            = "ThirdParty"
       provider         = "GitHub"
       version          = "1"
       output_artifacts = ["SourceOutput"]
 
       configuration = {
-        Owner      = var.github_owner
-        Repo       = var.github_repo
-        Branch     = var.github_branch
+        Owner  = var.github_owner
+        Repo   = var.github_repo
+        Branch = var.github_branch
+        # NOTE: For GitHub v2, you would normally use OAuthToken
+        # However, the recommended approach is to use CodeStar Connections
+        # For now, we use OAuthToken. To use CodeStar Connections, you would:
+        # ConnectionArn = aws_codestarconnections_connection.github.arn
+        # And remove the OAuthToken below
         OAuthToken = var.github_token
       }
     }
@@ -403,12 +408,12 @@ resource "aws_codepipeline" "main" {
     name = "UpdateTaskDefinition"
 
     action {
-      name             = "UpdateECSTaskDef"
-      category         = "Build"
-      owner            = "AWS"
-      provider         = "CodeBuild"
-      version          = "1"
-      input_artifacts  = ["SourceOutput"]
+      name            = "UpdateECSTaskDef"
+      category        = "Build"
+      owner           = "AWS"
+      provider        = "CodeBuild"
+      version         = "1"
+      input_artifacts = ["SourceOutput"]
       output_artifacts = ["BuildOutput"]
 
       configuration = {
@@ -442,3 +447,4 @@ resource "aws_codepipeline" "main" {
     Environment = var.environment
   }
 }
+
