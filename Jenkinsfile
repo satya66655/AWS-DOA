@@ -1,6 +1,21 @@
 pipeline {
     agent any
-    environment {
+      environment {
+    TF_VAR_github_token = credentials('github-token')
+    }
+  
+    stages {
+      stage('Terraform Plan') {
+        steps {
+          sh '''
+            terraform plan \
+              -var=aws_account_id=886436941748 \
+              -var=demo_date=03-06-2026
+          '''
+        }
+      }
+      }
+  environment {
         PATH = "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
     }
     parameters {
