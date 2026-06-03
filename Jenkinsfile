@@ -8,6 +8,7 @@ environment {
 }
 
 parameters {
+
     choice(
         name: 'TF_ACTION',
         choices: ['plan', 'apply', 'destroy'],
@@ -57,12 +58,15 @@ stages {
     }
 
     stage('Terraform Action') {
+
         steps {
+
             script {
 
                 def demoDate = params.DEMO_DATE?.trim()
 
                 if (!demoDate) {
+
                     demoDate = sh(
                         script: "date +%d-%m-%Y",
                         returnStdout: true
