@@ -212,7 +212,7 @@ resource "aws_codebuild_project" "update_task_definition" {
     type                        = "LINUX_CONTAINER"
     image_pull_credentials_type = "CODEBUILD"
     
-    environment_variables = jsonencode([
+    environment_variables = [
       {
         name  = "AWS_ACCOUNT_ID"
         value = var.aws_account_id
@@ -243,7 +243,7 @@ resource "aws_codebuild_project" "update_task_definition" {
         value = aws_ecs_service.main.name
         type  = "PLAINTEXT"
       }
-    ])
+    ]
   }
 
   source {
