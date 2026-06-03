@@ -212,39 +212,42 @@ resource "aws_codebuild_project" "update_task_definition" {
     image                       = "aws/codebuild/standard:7.0"
     type                        = "LINUX_CONTAINER"
     image_pull_credentials_type = "CODEBUILD"
+  }
 
-    environment_variables = [
-      {
-        name  = "AWS_ACCOUNT_ID"
-        value = var.aws_account_id
-        type  = "PLAINTEXT"
-      },
-      {
-        name  = "AWS_DEFAULT_REGION"
-        value = var.aws_region
-        type  = "PLAINTEXT"
-      },
-      {
-        name  = "ECR_REPOSITORY_NAME"
-        value = var.ecr_repository_name
-        type  = "PLAINTEXT"
-      },
-      {
-        name  = "TASK_DEFINITION_FAMILY"
-        value = var.project_name
-        type  = "PLAINTEXT"
-      },
-      {
-        name  = "ECS_CLUSTER_NAME"
-        value = aws_ecs_cluster.main.name
-        type  = "PLAINTEXT"
-      },
-      {
-        name  = "ECS_SERVICE_NAME"
-        value = aws_ecs_service.main.name
-        type  = "PLAINTEXT"
-      }
-    ]
+  environment_variable {
+    name  = "AWS_ACCOUNT_ID"
+    value = var.aws_account_id
+    type  = "PLAINTEXT"
+  }
+
+  environment_variable {
+    name  = "AWS_DEFAULT_REGION"
+    value = var.aws_region
+    type  = "PLAINTEXT"
+  }
+
+  environment_variable {
+    name  = "ECR_REPOSITORY_NAME"
+    value = var.ecr_repository_name
+    type  = "PLAINTEXT"
+  }
+
+  environment_variable {
+    name  = "TASK_DEFINITION_FAMILY"
+    value = var.project_name
+    type  = "PLAINTEXT"
+  }
+
+  environment_variable {
+    name  = "ECS_CLUSTER_NAME"
+    value = aws_ecs_cluster.main.name
+    type  = "PLAINTEXT"
+  }
+
+  environment_variable {
+    name  = "ECS_SERVICE_NAME"
+    value = aws_ecs_service.main.name
+    type  = "PLAINTEXT"
   }
 
   source {
@@ -363,7 +366,7 @@ resource "aws_cloudwatch_event_rule" "ecr_push" {
   count           = var.enable_ecr_auto_trigger ? 1 : 0
   name            = "${var.project_name}-ecr-image-push"
   description     = "Trigger CodePipeline when new image is pushed to ECR"
-  is_enabled      = true
+  state           = "ENABLED"
 
   event_pattern = jsonencode({
     source      = ["aws.ecr"]
@@ -468,3 +471,4 @@ resource "aws_codepipeline" "main" {
     Environment = var.environment
   }
 }
+
