@@ -59,8 +59,8 @@ resource "aws_iam_role_policy" "ecs_task_dynamodb_policy" {
       {
         Effect = "Allow"
         Action = [
-          "dynamodb:GetItem",
           "dynamodb:PutItem",
+          "dynamodb:GetItem",
           "dynamodb:UpdateItem",
           "dynamodb:DeleteItem",
           "dynamodb:Query",
@@ -69,10 +69,10 @@ resource "aws_iam_role_policy" "ecs_task_dynamodb_policy" {
           "dynamodb:BatchWriteItem"
         ]
         Resource = [
-          aws_dynamodb_table.students.arn,
-          aws_dynamodb_table.courses.arn,
-          aws_dynamodb_table.enrollments.arn,
-          "${aws_dynamodb_table.enrollments.arn}/index/*"
+          "arn:aws:dynamodb:${var.aws_region}:${var.aws_account_id}:table/${aws_dynamodb_table.students.name}",
+          "arn:aws:dynamodb:${var.aws_region}:${var.aws_account_id}:table/${aws_dynamodb_table.courses.name}",
+          "arn:aws:dynamodb:${var.aws_region}:${var.aws_account_id}:table/${aws_dynamodb_table.enrollments.name}",
+          "arn:aws:dynamodb:${var.aws_region}:${var.aws_account_id}:table/${aws_dynamodb_table.enrollments.name}/index/*"
         ]
       }
     ]
