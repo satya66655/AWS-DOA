@@ -1,8 +1,7 @@
 # ════════════════════════════════════════════════════════════════════════════
-# File: codepipeline.tf
+# File: codepipeline.tf - CORRECT VERSION
 # Purpose: Create CodePipeline for automated ECS deployment
 # Integration: Add to your existing AWS-DOA Terraform directory
-# Naming: Follows existing ${var.project_name} convention
 # ════════════════════════════════════════════════════════════════════════════
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -212,42 +211,39 @@ resource "aws_codebuild_project" "update_task_definition" {
     image                       = "aws/codebuild/standard:7.0"
     type                        = "LINUX_CONTAINER"
     image_pull_credentials_type = "CODEBUILD"
-  }
-
-  environment_variable {
-    name  = "AWS_ACCOUNT_ID"
-    value = var.aws_account_id
-    type  = "PLAINTEXT"
-  }
-
-  environment_variable {
-    name  = "AWS_DEFAULT_REGION"
-    value = var.aws_region
-    type  = "PLAINTEXT"
-  }
-
-  environment_variable {
-    name  = "ECR_REPOSITORY_NAME"
-    value = var.ecr_repository_name
-    type  = "PLAINTEXT"
-  }
-
-  environment_variable {
-    name  = "TASK_DEFINITION_FAMILY"
-    value = var.project_name
-    type  = "PLAINTEXT"
-  }
-
-  environment_variable {
-    name  = "ECS_CLUSTER_NAME"
-    value = aws_ecs_cluster.main.name
-    type  = "PLAINTEXT"
-  }
-
-  environment_variable {
-    name  = "ECS_SERVICE_NAME"
-    value = aws_ecs_service.main.name
-    type  = "PLAINTEXT"
+    
+    environment_variables = jsonencode([
+      {
+        name  = "AWS_ACCOUNT_ID"
+        value = var.aws_account_id
+        type  = "PLAINTEXT"
+      },
+      {
+        name  = "AWS_DEFAULT_REGION"
+        value = var.aws_region
+        type  = "PLAINTEXT"
+      },
+      {
+        name  = "ECR_REPOSITORY_NAME"
+        value = var.ecr_repository_name
+        type  = "PLAINTEXT"
+      },
+      {
+        name  = "TASK_DEFINITION_FAMILY"
+        value = var.project_name
+        type  = "PLAINTEXT"
+      },
+      {
+        name  = "ECS_CLUSTER_NAME"
+        value = aws_ecs_cluster.main.name
+        type  = "PLAINTEXT"
+      },
+      {
+        name  = "ECS_SERVICE_NAME"
+        value = aws_ecs_service.main.name
+        type  = "PLAINTEXT"
+      }
+    ])
   }
 
   source {
