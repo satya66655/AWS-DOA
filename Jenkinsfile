@@ -1,124 +1,194 @@
+#!/usr/bin/env groovy
+
+// ════════════════════════════════════════════════════════════════════════════
+// Jenkinsfile for AWS DevOps Agent Demo - CodePipeline Terraform Deployment
+// GitHub token is securely managed via Jenkins credentials
+// ════════════════════════════════════════════════════════════════════════════
+
 pipeline {
-agent any
+  agent any
 
-environment {
-    TF_VAR_github_token = credentials('GithubToken')
-    PATH = "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
-}
+  // ════════════════════════════════════════════════════════════════════════
+  // Environment variables - GitHub token loaded from Jenkins credentials
+  // ════════════════════════════════════════════════════════════════════════
+  environment {
+    AWS_REGION         = 'us-east-1'
+    TF_INPUT           = 'false'
+    TF_IN_AUTOMATION   = 'true'
+    TF_VAR_github_token = credentials('GithubToken')  // ✅ Secure credential
+  }
 
-parameters {
-
+  // ════════════════════════════════════════════════════════════════════════
+  // Parameters for Jenkins UI
+  // ════════════════════════════════════════════════════════════════════════
+  parameters {
     choice(
-        name: 'TF_ACTION',
-        choices: ['plan', 'apply', 'destroy'],
-        description: 'Select Terraform Action'
+      name: 'ACTION',
+      choices: ['Plan', 'Apply', 'Destroy'],
+      description: 'Terraform action to perform'
     )
-
     string(
-        name: 'AWS_ACCOUNT_ID',
-        defaultValue: '886436941748',
-        description: 'AWS Account ID'
+      name: 'AWS_ACCOUNT_ID',
+      defaultValue: '886436941748',
+      description: 'AWS Account ID'
     )
-
     string(
-        name: 'DEMO_DATE',
-        defaultValue: '',
-        description: 'Demo date tag in dd-mm-yyyy format (leave blank to auto-generate)'
+      name: 'DEMO_DATE',
+      defaultValue: '03-06-2026',
+      description: 'Demo date (DD-MM-YYYY)'
     )
-}
+  }
 
-stages {
+  // ════════════════════════════════════════════════════════════════════════
+  // Pipeline Stages
+  // ════════════════════════════════════════════════════════════════════════
+  stages {
 
+    // ────────────────────────────────────────────────────────────────────
+    // Stage 1: Checkout Code from Git
+    // ────────────────────────────────────────────────────────────────────
     stage('Checkout Code') {
-        steps {
-            git branch: 'main',
-                url: 'https://github.com/satya66655/AWS-DOA.git'
+      steps {
+        script {
+          echo "🔍 Checking out AWS-DOA repository..."
         }
+        git(
+          url: 'https://github.com/satya66655/AWS-DOA.git',
+          branch: 'main',
+          credentialsId: ''
+        )
+      }
     }
 
+    // ────────────────────────────────────────────────────────────────────
+    // Stage 2: Verify Tools
+    // ────────────────────────────────────────────────────────────────────
     stage('Verify Tools') {
-        steps {
-            sh 'terraform version'
-            sh 'aws --version'
-            sh 'aws sts get-caller-identity'
+      steps {
+        script {
+          echo "✓ Verifying Terraform installation..."
+          sh 'terraform version'
+          
+          echo "✓ Verifying AWS CLI installation..."
+          sh 'aws --version'
+          
+          echo "✓ Verifying AWS credentials..."
+          sh 'aws sts get-caller-identity'
         }
+      }
     }
 
+    // ────────────────────────────────────────────────────────────────────
+    // Stage 3: Terraform Init
+    // ────────────────────────────────────────────────────────────────────
     stage('Terraform Init') {
-        steps {
-            sh 'terraform init'
+      steps {
+        script {
+          echo "📦 Initializing Terraform..."
+          sh 'terraform init'
         }
+      }
     }
 
+    // ────────────────────────────────────────────────────────────────────
+    // Stage 4: Terraform Validate
+    // ────────────────────────────────────────────────────────────────────
     stage('Terraform Validate') {
-        steps {
-            sh 'terraform validate'
+      steps {
+        script {
+          echo "✓ Validating Terraform configuration..."
+          sh 'terraform validate'
         }
+      }
     }
 
+    // ────────────────────────────────────────────────────────────────────
+    // Stage 5: Terraform Format Check (Optional)
+    // ────────────────────────────────────────────────────────────────────
+    stage('Terraform Format Check') {
+      steps {
+        script {
+          echo "✓ Checking Terraform formatting..."
+          sh 'terraform fmt -check -recursive'
+        }
+      }
+    }
+
+    // ────────────────────────────────────────────────────────────────────
+    // Stage 6: Terraform Plan / Apply / Destroy
+    // ────────────────────────────────────────────────────────────────────
     stage('Terraform Action') {
-
-        steps {
-
-            script {
-
-                def demoDate = params.DEMO_DATE?.trim()
-
-                if (!demoDate) {
-
-                    demoDate = sh(
-                        script: "date +%d-%m-%Y",
-                        returnStdout: true
-                    ).trim()
-                }
-
-                def tfVars = """
-                    -var='aws_account_id=${params.AWS_ACCOUNT_ID}' \
-                    -var='demo_date=${demoDate}'
-                """
-
-                if (params.TF_ACTION == 'plan') {
-
-                    sh """
-                        terraform plan ${tfVars}
-                    """
-                }
-
-                if (params.TF_ACTION == 'apply') {
-
-                    input message: 'Approve APPLY?', ok: 'Apply'
-
-                    sh """
-                        terraform apply -auto-approve ${tfVars}
-                    """
-                }
-
-                if (params.TF_ACTION == 'destroy') {
-
-                    input message: 'Approve DESTROY?', ok: 'Destroy'
-
-                    sh """
-                        terraform destroy -auto-approve ${tfVars}
-                    """
-                }
-            }
+      steps {
+        script {
+          echo "🚀 Running Terraform ${params.ACTION}..."
+          
+          def action = params.ACTION.toLowerCase()
+          
+          if (action == 'plan') {
+            sh """
+              echo "📋 Planning Terraform changes..."
+              terraform plan \
+                -var="aws_account_id=${params.AWS_ACCOUNT_ID}" \
+                -var="demo_date=${params.DEMO_DATE}" \
+                -out=tfplan
+              echo "✓ Plan complete - review above"
+            """
+          }
+          else if (action == 'apply') {
+            sh """
+              echo "⚙️  Applying Terraform changes..."
+              terraform apply \
+                -var="aws_account_id=${params.AWS_ACCOUNT_ID}" \
+                -var="demo_date=${params.DEMO_DATE}" \
+                -auto-approve
+              echo "✓ Infrastructure deployed successfully!"
+            """
+          }
+          else if (action == 'destroy') {
+            input 'Are you sure you want to DESTROY all infrastructure? (Type "yes" to confirm)'
+            sh """
+              echo "🗑️  Destroying infrastructure..."
+              terraform destroy \
+                -var="aws_account_id=${params.AWS_ACCOUNT_ID}" \
+                -var="demo_date=${params.DEMO_DATE}" \
+                -auto-approve
+              echo "✓ Infrastructure destroyed"
+            """
+          }
         }
+      }
     }
-}
 
-post {
+    // ────────────────────────────────────────────────────────────────────
+    // Stage 7: Output Terraform Outputs
+    // ────────────────────────────────────────────────────────────────────
+    stage('Display Outputs') {
+      steps {
+        script {
+          echo "📊 Terraform Outputs:"
+          sh 'terraform output -no-color 2>/dev/null || echo "No outputs available yet"'
+        }
+      }
+    }
 
+  } // end stages
+
+  // ════════════════════════════════════════════════════════════════════════
+  // Post Actions
+  // ════════════════════════════════════════════════════════════════════════
+  post {
     success {
-        echo 'Terraform pipeline completed successfully.'
+      echo "✅ Pipeline completed successfully!"
     }
-
     failure {
-        echo 'Terraform pipeline failed.'
+      echo "❌ Pipeline failed. Check logs above for details."
     }
-
     always {
-        cleanWs()
+      // Clean up any sensitive files
+      script {
+        sh 'rm -f tfplan *.tfplan 2>/dev/null || true'
+      }
     }
-}
+  }
 
 }
